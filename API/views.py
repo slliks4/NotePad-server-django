@@ -10,7 +10,7 @@ from .serializers import Notes_serializer,User_serializers
 from main_LOGICS .models import Notes
 from main_AUTH.models import *
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from rest_framework.authtoken.models import Token
@@ -30,6 +30,33 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+
+        # If authentication is successful, set access and refresh tokens as HTTP-only cookies
+        if response.status_code == 200:
+            access_token = response.data['access']
+            refresh_token = response.data['refresh']
+            response.set_cookie('jwt_access_token', access_token, httponly=True, secure=True)
+            response.set_cookie('jwt_refresh_token', refresh_token, httponly=True, secure=True)
+            response.data = None
+        
+        return response
+    
+class MyTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        
+        # If token refresh is successful, set access and refresh tokens as HTTP-only cookies
+        if response.status_code == 200:
+            access_token = response.data['access']
+            refresh_token = response.data['refresh']
+            response.set_cookie('jwt_access_token', access_token, httponly=True, secure=True)
+            response.set_cookie('jwt_refresh_token', refresh_token, httponly=True, secure=True)
+            response.data = None
+        
+        return response
 
 @api_view(['GET'])
 def Endpoints(request):
