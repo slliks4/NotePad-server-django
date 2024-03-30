@@ -1,5 +1,5 @@
 from django.shortcuts import render,get_object_or_404,HttpResponseRedirect
-from django.http import JsonResponse
+from django.http import JsonResponse,HttpResponse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes,authentication_classes
@@ -15,9 +15,6 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from rest_framework.authtoken.models import Token
 
-
-
-
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
@@ -25,6 +22,12 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # Add custom claims
         token['username'] = user.username
+        token['email'] = user.email
+        token['first_name'] = user.first_name
+        token['last_name'] = user.last_name
+
+        if user.profile.profile_pic:
+            token['profile_pic'] = user.profile.profile_pic.url
 
         return token
 
@@ -34,13 +37,22 @@ class MyTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
 
-        # If authentication is successful, set access and refresh tokens as HTTP-only cookies
-        if response.status_code == 200:
+        if response.status_code == status.HTTP_200_OK:
             access_token = response.data['access']
             refresh_token = response.data['refresh']
-            response.set_cookie('jwt_access_token', access_token, httponly=True, secure=True)
-            response.set_cookie('jwt_refresh_token', refresh_token, httponly=True, secure=True)
-            response.data = None
+            response.set_cookie(
+                'access', access_token, 
+                httponly=True, 
+                secure=False,
+                samesite=None
+            )
+            response.set_cookie(
+                'refresh', refresh_token, 
+                httponly=True, 
+                secure=False,
+                samesite=None
+            )
+            # response.data = None
         
         return response
     
@@ -48,13 +60,22 @@ class MyTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         
-        # If token refresh is successful, set access and refresh tokens as HTTP-only cookies
-        if response.status_code == 200:
+        if response.status_code == status.HTTP_200_OK:
             access_token = response.data['access']
             refresh_token = response.data['refresh']
-            response.set_cookie('jwt_access_token', access_token, httponly=True, secure=True)
-            response.set_cookie('jwt_refresh_token', refresh_token, httponly=True, secure=True)
-            response.data = None
+            response.set_cookie(
+                'access', access_token, 
+                httponly=True, 
+                secure=False,
+                samesite=None
+            )
+            response.set_cookie(
+                'refresh', refresh_token, 
+                httponly=True, 
+                secure=False,
+                samesite=None
+            )
+            # response.data = None
         
         return response
 
